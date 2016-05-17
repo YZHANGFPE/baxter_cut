@@ -220,7 +220,8 @@ class JointSprings(object):
 
         force_max = -30
         
-
+        time = []
+        force = []
         # loop at specified rate commanding new joint torques
         currnet_z = get_current_pose(self._limb).pose.position.z
         while not rospy.is_shutdown() and currnet_z > self._z_cut_through and currnet_z < 0.1:
@@ -234,9 +235,12 @@ class JointSprings(object):
             target_z += delta_z
             target_x += delta_x
             currnet_z = get_current_pose(self._limb).pose.position.z
+            time.append(rospy.get_time())
+            force.append(self._limb.endpoint_effort()['force'].z)
             control_rate.sleep()
         if currnet_z >= 0.1: self._score = -100
-        self.output()
+        force_profile = np.asarray([time, force])
+        self.output(force_profile)
 
     def generate_delta_z(self, theta):
         x = self._limb.endpoint_pose()['position'].z - self._z_cut_through
@@ -264,9 +268,11 @@ class JointSprings(object):
             print("Disabling robot...")
             self._rs.disable()
 
-    def output(self):
+    def output(self, force_profile):
         print "Fianl socre: ", self._score
         print "Total time: ", self._time_consumption
+        print len(force_profile[1])
+        np.save('/home/aecins/force_profile', force_profile)
 
     def accept(self, theta):
         x = np.asarray([theta, self._score, self._time_consumption])
@@ -281,7 +287,7 @@ def main():
     # theta = []
     # for s in [sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]]:
     #     theta.append(float(s))
-    theta = [0, 0, 0, -0.000209 ]
+    theta = [-0.0003297, 9.12e-6, -3.9558e-5, -0.000209 ]
 
     
     dynamic_cfg_srv = Server(JointSpringsExampleConfig,
