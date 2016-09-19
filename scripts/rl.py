@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import roslaunch
 import rospy
 import numpy as np
@@ -31,13 +33,13 @@ while not es.stop():
 		process = launch.launch(node)
 		while process.is_alive():
 			pass
-		res = np.load('/home/aecins/output.npy')
+		res = np.load('/home/arclab/output.npy')
 
 		check = raw_input("Do you accept this result? ")
 		if len(check) == 0:
 		   final_result.append(res)
 		   evals.append(-res[1])
-		   np.save('/home/aecins/final_output', final_result)
+		   np.save('/home/arclab/final_output', final_result)
 		   print "accept result"
 		else:
 		   print "reject result"

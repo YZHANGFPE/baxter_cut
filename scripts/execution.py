@@ -10,7 +10,7 @@ import numpy as np
 import math
 import copy
 
-def set_joints( target_angles_right = None, target_angles_left = None,timeout= 40000):
+def set_joints( target_angles_right = None, target_angles_left = None,timeout= 80000):
 
     right = Limb("right")
     left = Limb("left")
@@ -112,7 +112,7 @@ def ik_pykdl(arm, kin, pose, side = "right"):
     pos = [position.x,position.y,position.z]
     rot = [orientation.x,orientation.y,orientation.z,orientation.w]
     joint_angles = kin.inverse_kinematics(pos,rot)
-    if joint_angles:
+    if len(joint_angles) > 0:
         if side == "right":
             cmd = {
                 'right_s0': joint_angles[0],
@@ -145,7 +145,7 @@ def ik_pykdl_joint(kin, pose, side = "right"):
     pos = [position.x,position.y,position.z]
     rot = [orientation.x,orientation.y,orientation.z,orientation.w]
     joint_angles = kin.inverse_kinematics(pos,rot)
-    if joint_angles:
+    if joint_angles is not None:
         if side == "right":
             cmd = {
                 'right_s0': joint_angles[0],

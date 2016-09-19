@@ -41,12 +41,11 @@ from std_msgs.msg import (
     Empty,
 )
 
-import baxter_interface
 
 from baxter_examples.cfg import (
     JointSpringsExampleConfig,
 )
-from baxter_interface import CHECK_VERSION
+from baxter_interface import CHECK_VERSION, Limb
 
 from baxter_pykdl import baxter_kinematics
 
@@ -76,7 +75,7 @@ class JointSprings(object):
         # control parameters
         self._rate = 1000.0  # Hz
         self._missed_cmds = 20.0  # Missed cycles before triggering timeout
-        self._z_cut_through = -0.130 # 0.0328
+        self._z_cut_through = -0.120 # 0.0328
 
         # parameters for calculating the accelaration
         self._last_time = 0
@@ -132,7 +131,7 @@ class JointSprings(object):
         self._time_consumption = 0
         self._last_time = 0
         set_joints(target_angles_left = self.joint_states['observe'])
-        ik_move('left', self.pub, self._jacob, control_mode = 'position', target_dz = -0.10, speed = 0.2, timeout = 20)
+        ik_move('left', self.pub, self._jacob, control_mode = 'position', target_dz = -0.06, speed = 0.2, timeout = 20)
         rospy.sleep(5)
 
     def recover(self):
@@ -224,20 +223,17 @@ class JointSprings(object):
         force = []
         # loop at specified rate commanding new joint torques
         currnet_z = get_current_pose(self._limb).pose.position.z
-        
-        start = rospy.get_time()
+        print "current z: ", currnet_z
+        print "z cut through: ", self._z_cut_through
         while not rospy.is_shutdown() and currnet_z > self._z_cut_through and currnet_z < 0.0:
             if not self._rs.state().enabled:
                 rospy.logerr("Joint torque example failed to meet "
                              "specified control rate timeout.")
                 break
-            if (rospy.get_time() - start) > 10.0:
-                print "Execution time out"
-                self._score -= 100
-                break
             self._update_forces(initial_pose, target_x, target_y, target_z)
             delta_x = 0.0
             delta_z = self.generate_delta_z(theta)
+            print "delta z: ", delta_z
             target_z += delta_z
             target_x += delta_x
             currnet_z = get_current_pose(self._limb).pose.position.z
@@ -293,9 +289,8 @@ def main():
     # theta = []
     # for s in [sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]]:
     #     theta.append(float(s))
-    # theta = [-0.0003297, 9.12e-6, -3.9558e-5, -0.000209 ]
-    theta = [-0.0038297, 20.12e-6, -3.9558e-5, -0.001009 ]
-    
+    theta = [-0.0003297, 9.12e-6, -3.9558e-5, -0.000209 ]
+
     
     dynamic_cfg_srv = Server(JointSpringsExampleConfig,
                              lambda config, level: config)
@@ -336,12 +331,16 @@ def test():
     set_joints(target_angles_left = joint_states['observe'])
     rospy.sleep(1)
     pub = rospy.Publisher('position_error', Point, queue_size=10)
-    jacob = baxter_kinematics('left').jacobian_pseudo_inverse()
-    for i in range(3):
-        ik_move('left', pub, jacob, control_mode = 'position', target_dz = -0.2, speed = 1.0, timeout = 20)
-        ik_move('left', pub, jacob, control_mode = 'position', target_dz = 0.2, speed = 1.0, timeout = 20)
+    arm = Limb('left')
+    kin = baxter_kinematics('left')
+    pose = get_current_pose(arm)
+    new_pose = update_current_pose(pose,0,0,-0.1)
+    start = rospy.get_time()
+    timeout = 5.0
+    while (rospy.get_time() - start) < timeout and not rospy.is_shutdown():
+        ik_pykdl(arm, kin, new_pose, side = 'left')
 
 
 if __name__ == "__main__":
-    main()
-    # test()
+    # main()
+    test()
